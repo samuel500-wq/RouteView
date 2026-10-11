@@ -1,0 +1,1 @@
+# Marks ml/ as a package if you prefer to run uvicorn ml.service:app from the repo root.

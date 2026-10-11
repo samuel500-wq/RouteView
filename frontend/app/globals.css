@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Leaflet containers must have explicit height */
+.leaflet-container {
+  background: #0b1220;
+  font-family: inherit;
+}
+
+/* Small helper for the map markers we render as divIcons */
+.rv-marker {
+  display: grid;
+  place-items: center;
+}
+
+/* Focus visibility for keyboard users */
+:focus-visible {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Interprovincial ticket — print styles
+   ============================================================ */
+
+.rv-print-area { display: none; }
+
+@media print {
+  /* Reset page */
+  @page { size: A4 portrait; margin: 0; }
+
+  html, body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide everything by default */
+  body * { visibility: hidden !important; }
+
+  /* Reveal the printable area */
+  .rv-print-area,
+  .rv-print-area * { visibility: visible !important; }
+
+  .rv-print-area {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    min-height: 100vh !important;
+    padding: 15mm !important;
+    margin: 0 !important;
+    background: white !important;
+    color: #0f172a !important;
+    box-sizing: border-box !important;
+    z-index: 99999 !important;
+  }
+}

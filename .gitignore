@@ -1,0 +1,40 @@
+# ---------- Node ----------
+node_modules/
+.next/
+dist/
+build/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ---------- Environment ----------
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# ---------- ML artifacts ----------
+ml/artifacts/*.joblib
+ml/artifacts/*.csv
+ml/artifacts/*.json
+
+# ---------- Uploads ----------
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# ---------- OS / IDE ----------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ---------- Logs ----------
+*.log

@@ -1,0 +1,915 @@
+==============================================================================
+  ROUTEVIEW — COMPLETE PROJECT DOCUMENTATION
+  Version 1.0
+  Last updated: October 2026
+  Stack: Next.js 14 · Node.js 20+ · MySQL 8 (XAMPP) · Python 3.10 · FastAPI · OpenRouter
+==============================================================================
+
+TABLE OF CONTENTS
+-----------------
+1.  What is RouteView
+2.  Features
+3.  Tech stack
+4.  Folder structure
+5.  Prerequisites for a new machine
+6.  First-time setup (step by step)
+7.  Environment variables (.env)
+8.  Database setup
+9.  Machine learning model
+10. Running the four services
+11. Demo accounts & test flow
+12. AI assistant setup (OpenRouter)
+13. Physical GPS / ESP32 setup (optional)
+14. Troubleshooting
+15. Migration checklist
+
+
+==============================================================================
+1. WHAT IS ROUTEVIEW
+==============================================================================
+
+RouteView is an intelligent public-transportation platform for Rwanda with
+two offerings in one application:
+
+  · URBAN — city buses in Kigali (routes R1–R4), live tracking on a map,
+    journey planning, digital QR tickets for city trips.
+
+  · INTERPROVINCIAL — long-distance buses from Nyabugogo to every Rwandan
+    province (Musanze, Rubavu, Huye, Rwamagana, Rusizi, Nyagatare, etc.)
+    operated by real companies (Volcano, Ritco, KBS, Trinity, Alpha, Omega,
+    Jali, Star). Book online, get a QR e-ticket that can be printed and
+    scanned once by the driver.
+
+The platform also includes an AI assistant (Kinyarwanda + English) powered
+by OpenRouter, a Python machine-learning model that predicts bus arrival
+times, an operator/admin dashboard, and an AI-assisted place finder.
+
+Data sources are clearly labelled:
+  · Real coordinates and routes are demonstration data unless stated.
+  · Vehicle positions marked "simulator" are simulated.
+  · The ML model is trained on synthetic data (documented in ml/).
+
+
+==============================================================================
+2. FEATURES
+==============================================================================
+
+Passenger:
+  · Home page with live stats, route preview, service alerts.
+  · Search stops, view route details, journey planner with fares.
+  · Live map of every vehicle, route polylines, satellite toggle.
+  · AI assistant (floating dock) in Kinyarwanda or English, tool-calling.
+  · Find places nearby with AI chat + real OpenStreetMap POI data.
+  · Book urban tickets with QR codes.
+  · Book interprovincial tickets with a printable A4 QR e-ticket.
+  · Digital tickets lock after one scan.
+
+Operator / Administrator:
+  · Separate staff login (/admin/login) with invite code for registration.
+  · Fleet monitoring on the map.
+  · Ticket validation (QR scan or manual code entry) for both urban and
+    interprovincial tickets — one-time use enforced server-side.
+  · Manage routes, stops, vehicles, service alerts, users.
+  · Analytics: bookings per route, daily redemptions, revenue.
+  · System status: DB, ML service, AI provider, live vehicle counts.
+
+Infrastructure:
+  · Built-in fleet simulator runs inside the backend — no extra process.
+  · Real road geometry from OSRM for smooth vehicle movement.
+  · ESP32/Wokwi firmware provided for real GPS devices.
+  · REST API with JWT auth, role-based access, rate limiting.
+  · MySQL schema with foreign keys, unique constraints, and safe concurrency.
+
+
+==============================================================================
+3. TECH STACK
+==============================================================================
+
+FRONTEND
+  Next.js 14 (App Router) + React 18 + TypeScript
+  Tailwind CSS 3
+  Leaflet 1.9 + react-leaflet 4
+  Runs on port 3000
+
+BACKEND
+  Node.js 20+ (tested on 22)
+  Express 4
+  MySQL (mysql2 driver)
+  JWT auth (jsonwebtoken), bcryptjs
+  Zod validation, multer for file uploads
+  Runs on port 4000 (or 4001 if 4000 is taken)
+
+DATABASE
+  MySQL 8 / MariaDB (XAMPP default)
+  Database name: routeview
+  Port 3306
+
+MACHINE LEARNING
+  Python 3.10.10
+  pandas, numpy, scikit-learn, joblib
+  FastAPI + uvicorn for serving
+  Runs on port 8000
+
+AI
+  OpenRouter API (OpenAI-compatible chat completions)
+  Any tool-capable model (gpt-4o-mini, claude-3.5-haiku, llama-3.3-70b)
+  Called only from the backend, never from the browser
+
+OPTIONAL HARDWARE
+  ESP32 + NEO-6M GPS
+  Wokwi simulation compatible
+  Firmware at firmware/esp32_gps/esp32_gps.ino
+
+
+==============================================================================
+4. FOLDER STRUCTURE
+==============================================================================
+
+routeview_v1/
+├── .env                          — main environment file (CREATE THIS)
+├── .env.example                  — template
+├── document.txt                  — this file
+├── dependencies.txt              — all packages
+│
+├── backend/
+│   ├── package.json
+│   ├── node_modules/             — created by npm install
+│   ├── uploads/                  — press locker uploads (may be empty)
+│   └── src/
+│       ├── server.js             — Express entry point
+│       ├── config.js             — reads .env
+│       ├── db/
+│       │   ├── pool.js           — MySQL connection pool
+│       │   ├── init.js           — applies schema.sql
+│       │   ├── schema.sql        — main DB (urban system)
+│       │   ├── seed.js           — urban demo data
+│       │   ├── intercity_schema.sql — interprovincial tables
+│       │   └── seed_intercity.js — interprovincial routes and trips
+│       ├── middleware/
+│       │   ├── auth.js           — JWT sign/verify + role gate
+│       │   ├── error.js          — error handler
+│       │   └── rateLimit.js      — public/auth/ai limiters
+│       ├── services/
+│       │   ├── fares.js          — fare lookup + haversine
+│       │   ├── journey.js        — planJourney + nearestStops
+│       │   ├── arrival.js        — calls ML service, falls back
+│       │   ├── tickets.js        — urban bookings/tickets
+│       │   ├── intercity.js      — interprovincial bookings/tickets
+│       │   ├── fleetSimulator.js — built-in vehicle simulator
+│       │   ├── roadPath.js       — OSRM road geometry client
+│       │   ├── vehicleStatus.js  — vehicle enrichment
+│       │   ├── routeAnalytics.js — per-route statistics
+│       │   ├── overpass.js       — OpenStreetMap POI client
+│       │   └── places.js         — POI enrichment with transport
+│       ├── ai/
+│       │   ├── openrouter.js     — chat + tool-calling loop
+│       │   ├── tools.js          — tool schema + dispatcher
+│       │   ├── prompts.js        — language-locked system prompts
+│       │   ├── planner.js        — AI-assisted journey planner
+│       │   └── placeAssistant.js — AI place finder
+│       └── routes/
+│           ├── auth.js           — login, register, staff register
+│           ├── transport.js      — routes, stops, planning
+│           ├── vehicles.js       — vehicle positions
+│           ├── bookings.js       — urban tickets
+│           ├── intercity.js      — interprovincial tickets
+│           ├── ai.js             — chat and AI endpoints
+│           ├── alerts.js         — service alerts
+│           ├── places.js         — place finder endpoints
+│           └── admin.js          — all admin endpoints
+│
+├── ml/
+│   ├── requirements.txt
+│   ├── generate_dataset.py       — synthetic data generator
+│   ├── train.py                  — trains + saves joblib pipeline
+│   ├── inference.py              — load() + predict()
+│   ├── service.py                — FastAPI app
+│   ├── .venv/                    — virtual environment (created locally)
+│   └── artifacts/
+│       ├── dataset.csv           — produced by generate_dataset.py
+│       ├── arrival_model.joblib  — produced by train.py
+│       └── metrics.json          — produced by train.py
+│
+├── simulator/
+│   ├── package.json              — created by npm init -y
+│   ├── node_modules/
+│   └── fleet_sim.js              — external simulator (optional; the
+│                                   backend has its own built-in one)
+│
+├── firmware/
+│   └── esp32_gps/
+│       └── esp32_gps.ino         — ESP32 firmware
+│
+└── frontend/
+    ├── package.json
+    ├── next.config.js
+    ├── tsconfig.json
+    ├── tailwind.config.ts
+    ├── postcss.config.js
+    ├── .env.local                — frontend env (CREATE THIS)
+    ├── .env.local.example
+    ├── node_modules/             — created by npm install
+    ├── public/
+    │   ├── logo.png              — header logo
+    │   ├── homepage.png          — homepage image
+    │   ├── Bus.jpg               — bus photo
+    │   └── (other assets)
+    └── app/
+        ├── layout.tsx            — ROOT layout with providers
+        ├── page.tsx              — landing page
+        ├── globals.css
+        ├── plan/page.tsx         — journey planner
+        ├── map/page.tsx          — live map
+        ├── routes/page.tsx       — route list
+        ├── routes/[id]/page.tsx  — route detail with analytics
+        ├── places/page.tsx       — AI place finder
+        ├── tickets/page.tsx      — interprovincial booking
+        └── admin/
+            ├── layout.tsx        — admin shell
+            ├── page.tsx          — dashboard
+            ├── login/page.tsx    — staff login/register
+            ├── validate/page.tsx — ticket scanner
+            ├── bookings/page.tsx
+            ├── routes/page.tsx
+            ├── stops/page.tsx
+            ├── vehicles/page.tsx
+            ├── alerts/page.tsx
+            ├── users/page.tsx
+            └── status/page.tsx
+
+
+==============================================================================
+5. PREREQUISITES FOR A NEW MACHINE
+==============================================================================
+
+Install these first:
+
+  1. Node.js 20 or newer (LTS)
+     → https://nodejs.org
+     Verify: node -v    (should print v20.x or v22.x)
+             npm -v     (should print 10.x or newer)
+
+  2. Python 3.10 or 3.12
+     → https://www.python.org/downloads/
+     IMPORTANT: check "Add python.exe to PATH" during install.
+     Verify: python --version
+     Should print Python 3.10.x or 3.12.x
+
+  3. XAMPP (includes Apache + MySQL/MariaDB)
+     → https://www.apachefriends.org/
+     Start Apache and MySQL from the XAMPP Control Panel.
+     Verify MySQL is up:
+        Test-NetConnection 127.0.0.1 -Port 3306
+     Should print TcpTestSucceeded : True
+
+  4. VS Code (recommended)
+     → https://code.visualstudio.com/
+     Useful extensions: ESLint, Prettier, Tailwind CSS IntelliSense,
+     Python.
+
+  5. An OpenRouter account (free to create)
+     → https://openrouter.ai/keys
+     Copy your API key — you will paste it in .env
+     Add $5 credit if you want to use paid models. Free models work too.
+
+Optional:
+  6. Git (only if you plan to version-control)
+  7. Wokwi account (browser-based ESP32 simulator)
+
+
+==============================================================================
+6. FIRST-TIME SETUP (STEP BY STEP)
+==============================================================================
+
+Follow these in order. Every command is PowerShell.
+
+--- STEP 1: Put the project in place --------------------------------
+
+Place the entire project folder at a path with no spaces. Recommended:
+  C:\xampp1\htdocs\routeview_v1
+
+Then open PowerShell and go to the root:
+  cd C:\xampp1\htdocs\routeview_v1
+
+--- STEP 2: Create the root .env file ------------------------------
+
+Copy the template:
+  Copy-Item .env.example .env
+
+Open it in VS Code:
+  code .env
+
+Fill in the values you need. See section 7 for the full list.
+The two you MUST set are:
+  - DB_PASSWORD     (blank for a fresh XAMPP install)
+  - OPENROUTER_API_KEY  (starts with sk-or-v1-)
+
+Save and close.
+
+--- STEP 3: Create the frontend env file ---------------------------
+
+Copy the template:
+  Copy-Item frontend\.env.local.example frontend\.env.local
+
+Or create it manually with these two lines:
+  NEXT_PUBLIC_API_URL=http://localhost:4000
+  NEXT_PUBLIC_TILE_URL=https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png
+
+If you changed the backend port (e.g. to 4001), update the URL here too.
+
+--- STEP 4: Install backend dependencies ---------------------------
+
+  cd backend
+  npm install
+
+Expected: "added ~190 packages". Takes 1–2 minutes.
+
+Then go back to the root:
+  cd ..
+
+--- STEP 5: Install frontend dependencies --------------------------
+
+  cd frontend
+  npm install
+
+Expected: "added ~350 packages". Takes 2–4 minutes. Next.js is heavy.
+
+Then back to the root:
+  cd ..
+
+--- STEP 6: Install simulator dependencies -------------------------
+
+  cd simulator
+  npm init -y
+  npm install dotenv jsonwebtoken
+  cd ..
+
+(You only need the simulator if you want an external process. The backend
+has its own built-in one that starts automatically.)
+
+--- STEP 7: Create the Python virtual environment ------------------
+
+  cd ml
+  python -m venv .venv
+  .\.venv\Scripts\Activate.ps1
+
+If PowerShell blocks the activate script:
+  Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+Then run activate again.
+
+Your prompt should now show (.venv).
+
+--- STEP 8: Install Python dependencies ----------------------------
+
+  python -m pip install --upgrade pip
+  pip install -r requirements.txt
+
+Takes 2–5 minutes. All packages have prebuilt Windows wheels.
+
+--- STEP 9: Generate the synthetic dataset -------------------------
+
+  python generate_dataset.py
+
+Expected: "[generate_dataset] wrote 60000 rows -> ...".
+
+--- STEP 10: Train the ML model ------------------------------------
+
+  python train.py
+
+Expected:
+  [train]   linear  MAE=  xxx s
+  [train]      gbr  MAE=   xx s
+  [train]       rf  MAE=   xx s
+  [train] best model: gbr (MAE xx s)
+  [train] saved model + metrics
+
+The winner is usually gbr. Either is fine.
+
+--- STEP 11: Set up the database -----------------------------------
+
+Start MySQL in XAMPP (green light).
+Then from the backend folder:
+
+  cd ..\backend
+  npm run db:init
+
+Expected: "[db:init] schema applied."
+
+Now load the urban demo data:
+
+  npm run seed
+
+Expected: "[seed] demo data inserted."
+
+Now create the interprovincial schema and seed:
+
+  mysql -u root routeview < src\db\intercity_schema.sql
+  npm run seed:intercity
+
+Expected: "[ic-seed] 8 companies" and "[ic-seed] 50 route directions"
+and "[ic-seed] ~4000 trips".
+
+Verify in MySQL:
+  mysql -u root -e "USE routeview; SHOW TABLES;"
+Should show 15 urban tables + 6 intercity tables.
+
+--- STEP 12: You are ready to run -------------------------------
+See section 10.
+
+
+==============================================================================
+7. ENVIRONMENT VARIABLES (.env)
+==============================================================================
+
+Location: C:\xampp1\htdocs\routeview_v1\.env
+
+Full contents (paste as-is, then edit OPENROUTER_API_KEY):
+
+# ---------- Application ----------
+NODE_ENV=development
+PORT=4000
+JWT_SECRET=routeview-local-dev-secret-change-me
+JWT_EXPIRES_IN=7d
+CORS_ORIGIN=http://localhost:3000
+
+# ---------- MySQL (XAMPP defaults) ----------
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=routeview
+
+# ---------- ML service ----------
+ML_SERVICE_URL=http://127.0.0.1:8000
+
+# ---------- OpenRouter ----------
+OPENROUTER_API_KEY=
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_MODEL=anthropic/claude-3.5-haiku
+OPENROUTER_APP_NAME=RouteView
+OPENROUTER_APP_URL=http://localhost:3000
+AI_REQUEST_TIMEOUT_MS=25000
+AI_RATE_LIMIT_PER_MIN=20
+
+# ---------- Frontend ----------
+NEXT_PUBLIC_API_URL=http://localhost:4000
+NEXT_PUBLIC_TILE_URL=https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png
+
+# ---------- Staff registration ----------
+ADMIN_INVITE_CODE=ROUTEVIEW2024
+
+# ---------- Simulator ----------
+SIMULATE_VEHICLES=true
+
+NOTES
+  · DB_PASSWORD is blank for a fresh XAMPP install. If you set a MySQL
+    root password, put it here.
+  · OPENROUTER_MODEL is important. Recommended:
+      anthropic/claude-3.5-haiku    — best quality, low cost
+      openai/gpt-4o-mini            — cheapest paid
+      meta-llama/llama-3.3-70b-instruct — free tier (slower)
+    Do NOT use meta-llama/llama-3.1-8b-instruct — it does not support
+    tool calling and RouteView will fall back to a non-tool reply.
+  · ADMIN_INVITE_CODE is the code staff must enter when registering.
+    Change it any time. Default is ROUTEVIEW2024.
+  · SIMULATE_VEHICLES=true runs the built-in fleet simulator.
+    Set to false only if you have real GPS devices sending positions.
+
+FRONTEND ENV (separate file)
+Location: frontend\.env.local
+Contents:
+  NEXT_PUBLIC_API_URL=http://localhost:4000
+  NEXT_PUBLIC_TILE_URL=https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png
+
+If you change the backend PORT above, change NEXT_PUBLIC_API_URL here too.
+
+
+==============================================================================
+8. DATABASE SETUP
+==============================================================================
+
+The database is called routeview and lives in XAMPP's MySQL.
+
+There are two schemas:
+  · backend/src/db/schema.sql           — urban system (15 tables)
+  · backend/src/db/intercity_schema.sql — interprovincial (6 tables)
+
+URBAN SETUP
+  cd backend
+  npm run db:init
+  npm run seed
+
+INTERPROVINCIAL SETUP
+  mysql -u root routeview < src\db\intercity_schema.sql
+  npm run seed:intercity
+
+That inserts:
+  · 8 bus companies
+  · 25 city/terminal definitions
+  · ~50 route directions (Kigali↔each province, cross-province)
+  · ~75 daily schedules
+  · ~4,000 individual trips for the next 14 days
+
+To RESET the database at any time:
+  npm run db:init       (drops and recreates urban tables)
+  npm run seed
+  mysql -u root routeview < src\db\intercity_schema.sql
+  npm run seed:intercity
+
+To verify data:
+  mysql -u root -e "USE routeview; SELECT COUNT(*) FROM stops;"
+  mysql -u root -e "USE routeview; SELECT COUNT(*) FROM intercity_routes;"
+  mysql -u root -e "USE routeview; SELECT COUNT(*) FROM intercity_trips;"
+
+
+==============================================================================
+9. MACHINE LEARNING MODEL
+==============================================================================
+
+The arrival-time model is trained on a synthetic dataset.
+
+TRAINING
+  cd ml
+  .\.venv\Scripts\Activate.ps1
+  python generate_dataset.py
+  python train.py
+
+Produces:
+  artifacts/dataset.csv          60,000 synthetic rows
+  artifacts/arrival_model.joblib the trained pipeline
+  artifacts/metrics.json         training metrics + disclaimer
+
+The metrics describe fit to the synthetic generator, not real-world
+accuracy. This is honest and documented in the metrics file.
+
+SERVING
+  uvicorn service:app --port 8000
+
+Endpoints:
+  GET  /health      — { ok, model_version, chosen }
+  POST /predict     — takes features, returns { seconds, ... }
+
+Features the model expects:
+  route_id, hour_of_day, day_of_week, distance_remaining_m,
+  recent_speed_kmh, remaining_stops, delay_indicator
+
+The backend calls /predict from services/arrival.js. If the ML service
+is down, the backend falls back to a physics estimate and labels it
+"source: fallback". The app never breaks.
+
+RETRAINING
+  Replace artifacts/dataset.csv with real telemetry using the same
+  seven columns, bump MODEL_VERSION inside train.py, rerun train.py,
+  restart uvicorn. The backend picks up the new model on the next call.
+
+
+==============================================================================
+10. RUNNING THE FOUR SERVICES
+==============================================================================
+
+You need FOUR terminals open at once. Each runs one long-lived process.
+
+Open a NEW PowerShell window for each one. Never type in a window that
+is running a server — it will queue your typing and freeze. Use a fifth
+window for checking.
+
+--- TERMINAL 1: ML SERVICE ----------------------------------------
+
+  cd C:\xampp1\htdocs\routeview_v1\ml
+  .\.venv\Scripts\Activate.ps1
+  uvicorn service:app --port 8000
+
+Wait for: "Application startup complete."
+Leave open. This is Process 1.
+
+--- TERMINAL 2: BACKEND -------------------------------------------
+
+  cd C:\xampp1\htdocs\routeview_v1\backend
+  npm run dev
+
+Wait for:
+  [routeview] API listening on http://localhost:4000
+  [sim] fleet simulator started — 12 vehicles across 4 routes
+
+Leave open. This is Process 2.
+
+--- TERMINAL 3: FRONTEND ------------------------------------------
+
+  cd C:\xampp1\htdocs\routeview_v1\frontend
+  npm run dev
+
+Wait for: "Ready in X.Xs"
+Leave open. This is Process 3.
+
+--- TERMINAL 4 (optional): EXTERNAL SIMULATOR ---------------------
+
+Not needed in normal development — the backend's built-in simulator
+already runs. Only start this if you set SIMULATE_VEHICLES=false or
+want two independent sources.
+
+  cd C:\xampp1\htdocs\routeview_v1\simulator
+  node fleet_sim.js
+
+--- OPEN THE APP --------------------------------------------------
+
+Browser → http://localhost:3000
+
+You should see the RouteView landing page within 3 seconds.
+
+VERIFY FROM A FIFTH WINDOW
+  Invoke-RestMethod http://localhost:4000/health
+     → ok: True, db: ok, ai_configured: True
+
+  Invoke-RestMethod http://127.0.0.1:8000/health
+     → ok: True, model_version: 1.0.0
+
+  (Invoke-RestMethod http://localhost:4000/api/vehicles).vehicles.Count
+     → 12
+
+
+==============================================================================
+11. DEMO ACCOUNTS & TEST FLOW
+==============================================================================
+
+DEMO ACCOUNTS (created by npm run seed)
+
+  Passenger        passenger@routeview.rw   Password123!
+  Operator         operator@routeview.rw    Password123!
+  Admin            admin@routeview.rw       Password123!
+
+STAFF REGISTRATION
+  Anyone with the invite code can register a staff account.
+  Invite code is set in .env as ADMIN_INVITE_CODE (default ROUTEVIEW2024).
+  Staff sign up at /admin/login → Register tab.
+
+FULL DEMO WALKTHROUGH (for a pitch, ~8 minutes)
+
+  1. Landing page
+     http://localhost:3000
+     Point out live stats, real route data, alert banner.
+
+  2. Journey planner
+     http://localhost:3000/plan
+     Search mode: Nyabugogo → Kimironko. Show the trip cards and map.
+     AI mode: click a suggestion in Kinyarwanda ("Nifasha kugera
+     Kimironko nte?"). Watch the assistant call tools and reply.
+
+  3. Live map
+     http://localhost:3000/map
+     12 buses moving along real roads. Click one → passengers, next
+     stop, destination, ML arrival estimate.
+     Toggle "My location" → grant GPS → blue dot follows you.
+     Toggle "Satellite" → Esri imagery.
+
+  4. AI place finder
+     http://localhost:3000/places
+     Ask "Where can I eat near me?" → AI asks for location → you tap
+     share → AI returns places with moto and bus options.
+
+  5. Interprovincial tickets
+     http://localhost:3000/tickets
+     Sign in as passenger. Search Kigali → Musanze. Book, pay (demo).
+     Open the ticket → Show QR → click Print → A4 printable ticket.
+
+  6. Operator validates
+     Sign out. Sign in as operator@routeview.rw.
+     Go to /admin/validate. Paste the ticket code. Valid.
+     Paste again. "already_used" — the single-use lock.
+
+  7. Admin dashboard
+     /admin, /admin/bookings, /admin/status
+     Show real KPIs, reports, ML/AI/DB status.
+
+  8. Staff registration
+     Sign out. Go to /admin/login → Register.
+     Enter invite code ROUTEVIEW2024. Pick role. Get in.
+
+
+==============================================================================
+12. AI ASSISTANT SETUP (OPENROUTER)
+==============================================================================
+
+1. Get an API key at https://openrouter.ai/keys
+2. Paste it in .env:  OPENROUTER_API_KEY=sk-or-v1-...
+3. Add credit at https://openrouter.ai/credits ($5 lasts thousands
+   of messages on gpt-4o-mini or claude-3.5-haiku).
+4. Pick a model that supports tool calling. In .env:
+     OPENROUTER_MODEL=anthropic/claude-3.5-haiku
+   or
+     OPENROUTER_MODEL=openai/gpt-4o-mini
+5. Restart the backend.
+
+Verify:
+  Invoke-RestMethod http://localhost:4000/health
+  → ai_configured : True
+
+If ai_configured is False:
+  · Confirm the .env line has no quotes around the key.
+  · Restart the backend (it reads .env only at startup).
+  · Confirm config.js points to the correct .env path (it uses
+    path.resolve(__dirname, '../../.env') so it always finds the
+    root file regardless of working directory).
+
+WHY THIS MATTERS
+  The assistant uses OpenRouter for language understanding. It calls
+  tools that query the real database. It never invents routes, fares,
+  or live bus positions. If OpenRouter is unreachable, the app shows
+  a clearly-labelled fallback message and everything else keeps working.
+
+
+==============================================================================
+13. PHYSICAL GPS / ESP32 SETUP (OPTIONAL)
+==============================================================================
+
+The platform accepts real GPS positions from ESP32 devices. Both the
+built-in simulator and real devices write to the same endpoint and the
+same table, so they can coexist.
+
+ENDPOINT
+  POST /api/vehicles/ingest
+  Requires operator or admin JWT.
+
+PAYLOAD
+  {
+    "vehicle_id": 1,
+    "route_id": 1,
+    "lat": -1.9441,
+    "lng": 30.0619,
+    "speed_kmh": 32.5,
+    "heading_deg": 45,
+    "source": "gps"
+  }
+
+SETUP
+  1. Open firmware/esp32_gps/esp32_gps.ino in Arduino IDE or the
+     Wokwi editor (https://wokwi.com).
+  2. Set WIFI_SSID and WIFI_PASS.
+  3. Set API_URL to your machine's LAN IP, e.g.
+     http://192.168.1.100:4000/api/vehicles/ingest
+  4. Generate an operator JWT:
+       cd backend
+       node -e "console.log(require('jsonwebtoken').sign({id:2,email:'operator@routeview.rw',role:'operator'}, 'your-jwt-secret', {expiresIn:'7d'}))"
+  5. Paste the token into OPERATOR_TOKEN in the .ino file.
+  6. Flash. Positions will arrive on the map as blue markers.
+
+The map distinguishes:
+  · Blue  → GPS feed (source: "gps")
+  · Amber → Simulated feed (source: "simulator")
+
+
+==============================================================================
+14. TROUBLESHOOTING
+==============================================================================
+
+ERROR: EADDRINUSE (address already in use :::PORT)
+  Something is holding the port. Two options:
+   A. Change PORT in .env to 4001 and NEXT_PUBLIC_API_URL in
+      frontend/.env.local to match. Restart both.
+   B. Kill the process:
+        Get-Process node | Stop-Process -Force
+        netstat -ano | findstr :4000
+        taskkill /F /PID <pid>
+
+ERROR: Cannot find module 'xyz'
+  Run npm install in the folder that imports it. If the error mentions
+  a specific service (e.g. fleetSimulator.js), the file was not
+  created — copy it from the documentation.
+
+ERROR: 'Identifier XYZ has already been declared'
+  Duplicate import. Open the file, find the repeated line at the top,
+  delete one. Rule: all imports at the top, no duplicates.
+
+ERROR: AuthProvider missing
+  app/layout.tsx is not wrapping children in <AuthProvider>. See
+  section 4 for the folder structure; ensure the root layout file
+  contains <AuthProvider>.
+
+ERROR: ai_configured : False after setting the key
+  · Check the .env line has no quotes.
+  · Restart the backend (Ctrl+C, npm run dev).
+  · Confirm config.js loads from '../../.env'.
+
+ERROR: openrouter_400
+  The chosen model does not support tool calling. Change
+  OPENROUTER_MODEL in .env to anthropic/claude-3.5-haiku or
+  openai/gpt-4o-mini. Restart the backend.
+
+ERROR: openrouter_401 / 402
+  401 = invalid key. Check the OpenRouter dashboard.
+  402 = no credit. Add $5 at openrouter.ai/credits.
+
+ERROR: "Failed to fetch" in the browser
+  The backend is not reachable.
+   · Confirm the backend is running (Invoke-RestMethod .../health).
+   · Confirm frontend/.env.local has the correct API URL and that
+     the frontend was restarted AFTER editing it.
+   · If you changed the backend port, update both files.
+
+ERROR: Map shows "API KEY REQUIRED"
+  You are using CARTO tiles that need a key. Confirm the tile URL is
+  https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png in MiniFleetMap.tsx
+  and LiveMap.tsx. Restart the frontend.
+
+ERROR: 0 buses on the map
+  The built-in simulator did not start. Check the backend terminal:
+   · Should print "[sim] fleet simulator started — 12 vehicles".
+   · If not, confirm SIMULATE_VEHICLES=true in .env.
+   · Confirm there are routes with at least 2 stops:
+       mysql -u root -e "USE routeview; SELECT route_id, COUNT(*) FROM route_stops GROUP BY route_id;"
+
+ERROR: Tickets search returns nothing
+  The intercity schema or seed has not been applied. Run:
+    mysql -u root routeview < backend\src\db\intercity_schema.sql
+    cd backend && npm run seed:intercity
+
+ERROR: QR scan says "already_used" on first scan
+  That means the ticket was already used in a previous test. Create
+  a new booking or reset the intercity tables.
+
+ERROR: python -m venv fails
+  Python is not on PATH. Reinstall Python from python.org and check
+  "Add python.exe to PATH" during setup.
+
+ERROR: pip install fails on scipy
+  No prebuilt wheel found. Force wheel-only:
+    pip install --only-binary=:all: -r requirements.txt
+
+ERROR: Model training is slow
+  On 8 GB RAM, edit ml/generate_dataset.py: change N = 60_000 to
+  N = 20_000. Retrain. Same quality, half the time.
+
+
+==============================================================================
+15. MIGRATION CHECKLIST
+==============================================================================
+
+Use this when moving the project to a new machine.
+
+BEFORE LEAVING THE OLD MACHINE
+  [ ] Copy the entire routeview_v1 folder (including .env).
+  [ ] Export the database:
+        mysqldump -u root routeview > routeview_backup.sql
+      Keep this file alongside the project.
+  [ ] Note your OpenRouter API key (in .env, safe to copy with the
+      folder, but treat as a secret).
+
+ON THE NEW MACHINE
+  [ ] Install Node.js 20+, Python 3.10+, and XAMPP. Start MySQL.
+  [ ] Place the project folder at a path with no spaces.
+  [ ] Open PowerShell in the project root.
+
+  [ ] Recreate the .env file (or copy from the folder). Verify:
+        Test-Path .env          → True
+        Test-Path frontend\.env.local → True
+
+  [ ] Install dependencies:
+        cd backend ; npm install ; cd ..
+        cd frontend ; npm install ; cd ..
+        cd simulator ; npm init -y ; npm install dotenv jsonwebtoken ; cd ..
+        cd ml ; python -m venv .venv ; .\.venv\Scripts\Activate.ps1
+             ; pip install -r requirements.txt ; cd ..
+
+  [ ] Load the database:
+        mysql -u root -e "CREATE DATABASE IF NOT EXISTS routeview CHARACTER SET utf8mb4;"
+        mysql -u root routeview < routeview_backup.sql
+      OR, from scratch:
+        cd backend
+        npm run db:init
+        npm run seed
+        mysql -u root routeview < src\db\intercity_schema.sql
+        npm run seed:intercity
+
+  [ ] Train the ML model:
+        cd ml ; .\.venv\Scripts\Activate.ps1
+             ; python generate_dataset.py
+             ; python train.py
+             ; cd ..
+
+  [ ] Start the services (see section 10). Verify:
+        Invoke-RestMethod http://localhost:4000/health
+        Invoke-RestMethod http://127.0.0.1:8000/health
+        Browser → http://localhost:3000
+
+  [ ] Open /admin/login and sign in as operator@routeview.rw.
+
+  [ ] Test one ticket through /tickets, print it, scan it at
+      /admin/validate twice to confirm the single-use lock.
+
+CONFIRMED WORKING WHEN
+  [ ] Landing page loads with live stats and buses on the mini map.
+  [ ] Plan page returns real journey options.
+  [ ] AI assistant answers in Kinyarwanda (with key configured).
+  [ ] Map shows 12 moving buses, satellite toggle works, GPS locator
+      finds you.
+  [ ] Places page returns real POIs from OpenStreetMap.
+  [ ] Interprovincial booking produces a printable QR ticket.
+  [ ] Operator scan locks the ticket on the second scan.
+  [ ] Admin dashboard shows KPIs, reports, and system status.
+
+
+==============================================================================
+  END OF DOCUMENTATION
+  For details on any component, see the source files and comments
+  within each folder. Every feature has a corresponding file that can
+  be inspected independently.
+==============================================================================

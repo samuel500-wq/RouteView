@@ -1,0 +1,404 @@
+==============================================================================
+  ROUTEVIEW — HOW TO RUN
+  Simple steps. Follow in order. Nothing else needed.
+==============================================================================
+
+
+BEFORE YOU START
+================
+
+You need 5 PowerShell windows open at once.
+
+  Window 1  →  ML service
+  Window 2  →  Backend
+  Window 3  →  Frontend
+  Window 4  →  Simulator (optional)
+  Window 5  →  Your control panel (for checks)
+
+Also: XAMPP Control Panel must have Apache and MySQL running (green lights).
+
+
+==============================================================================
+EVERY TIME YOU WANT TO RUN THE PROJECT
+==============================================================================
+
+--- STEP 1: START XAMPP ----------------------------------------------
+
+  Open XAMPP Control Panel.
+  Click Start on Apache.  Wait for green.
+  Click Start on MySQL.   Wait for green.
+
+  (You only do this once per session. Leave XAMPP running.)
+
+
+--- STEP 2: OPEN WINDOW 1 (ML SERVICE) --------------------------------
+
+  Open a new PowerShell window.
+
+  Type these commands:
+
+    cd C:\xampp1\htdocs\routeview_v1\ml
+    .\.venv\Scripts\Activate.ps1
+    uvicorn service:app --port 8000
+
+  Wait until you see:
+
+    INFO:     Application startup complete.
+    INFO:     Uvicorn running on http://127.0.0.1:8000
+
+  LEAVE THIS WINDOW OPEN. Do not type in it again.
+
+
+--- STEP 3: OPEN WINDOW 2 (BACKEND) -----------------------------------
+
+  Open a new PowerShell window.
+
+  Type:
+
+    cd C:\xampp1\htdocs\routeview_v1\backend
+    npm run dev
+
+  Wait until you see BOTH of these lines:
+
+    [routeview] API listening on http://localhost:4000
+    [sim] fleet simulator started — 12 vehicles across 4 routes
+
+  LEAVE THIS WINDOW OPEN. Do not type in it again.
+
+
+--- STEP 4: OPEN WINDOW 3 (FRONTEND) ----------------------------------
+
+  Open a new PowerShell window.
+
+  Type:
+
+    cd C:\xampp1\htdocs\routeview_v1\frontend
+    npm run dev
+
+  Wait until you see:
+
+    ▲ Next.js 14.2.5
+    - Local:        http://localhost:3000
+    - Ready in X.Xs
+
+  LEAVE THIS WINDOW OPEN. Do not type in it again.
+
+
+--- STEP 5: OPEN YOUR BROWSER ----------------------------------------
+
+  Go to:  http://localhost:3000
+
+  You should see the RouteView homepage within 3 seconds.
+
+
+--- STEP 6: TEST IT WORKS --------------------------------------------
+
+  Open a new PowerShell window (Window 5 — your control panel).
+
+  Paste this:
+
+    'backend:  ' + (Invoke-RestMethod http://localhost:4000/health).ok
+    'ml:       ' + (Invoke-RestMethod http://127.0.0.1:8000/health).ok
+    'vehicles: ' + (Invoke-RestMethod http://localhost:4000/api/vehicles).vehicles.Count
+    'routes:   ' + (Invoke-RestMethod http://localhost:4000/api/routes).routes.Count
+
+  You should see:
+
+    backend:  True
+    ml:       True
+    vehicles: 12
+    routes:   4
+
+  If all four are correct, everything is running.
+
+
+==============================================================================
+DONE. WHAT YOU CAN DO NOW
+==============================================================================
+
+Open these pages in your browser:
+
+  http://localhost:3000              — Homepage
+  http://localhost:3000/plan         — Journey planner (with AI mode)
+  http://localhost:3000/map          — Live bus map
+  http://localhost:3000/routes       — All routes
+  http://localhost:3000/places       — AI place finder
+  http://localhost:3000/tickets      — Book interprovincial tickets
+  http://localhost:3000/admin/login  — Staff console (login/register)
+  http://localhost:3000/admin        — Admin dashboard (staff only)
+
+LOGIN CREDENTIALS
+
+  Passenger:  passenger@routeview.rw   /   Password123!
+  Operator:   operator@routeview.rw    /   Password123!
+  Admin:      admin@routeview.rw       /   Password123!
+
+
+==============================================================================
+THE IMPORTANT RULE
+==============================================================================
+
+DO NOT type in Windows 1, 2, 3, or 4 while they are running.
+
+If you press Ctrl+C in any of those windows, that service stops and the
+app will break. If you need to run a command, use Window 5 (a fresh
+PowerShell window) — never one of the running service windows.
+
+If you see a window that is printing logs and won't let you type,
+that's normal — it's busy serving. Leave it alone.
+
+
+==============================================================================
+THE OPTIONAL SIMULATOR (Window 4)
+==============================================================================
+
+You do NOT need this in normal use. The backend already simulates buses.
+
+Only start it if you want TWO independent simulated feeds at the same
+time (useful for a demo where you point out different data sources):
+
+  Open a 4th PowerShell window:
+
+    cd C:\xampp1\htdocs\routeview_v1\simulator
+    node fleet_sim.js
+
+  Wait for:
+
+    [sim] simulating 5 vehicles on 4 routes
+    [sim] tick: 5 vehicles @ 14:03:12
+
+  Leave it running too. The map will now show 12 buses from the backend
+  plus 5 from this simulator — 17 total.
+
+
+==============================================================================
+HOW TO STOP EVERYTHING
+==============================================================================
+
+In each of windows 1, 2, 3 (and 4 if running):
+
+  Press Ctrl+C once.
+  Wait for the prompt (PS C:\...>) to come back.
+  Then you can close the window.
+
+Then in XAMPP Control Panel:
+
+  Click Stop on MySQL.
+  Click Stop on Apache.
+
+That's it. Nothing to clean up.
+
+
+==============================================================================
+HOW TO RESTART AFTER MAKING CODE CHANGES
+==============================================================================
+
+Backend and frontend auto-reload when you save files. You do not need
+to restart them for normal edits.
+
+Restart the backend ONLY when you change:
+  · .env
+  · config.js
+  · schema files
+
+To restart the backend:
+  Go to Window 2.
+  Press Ctrl+C.
+  Type:  npm run dev
+  Wait for the two startup lines again.
+
+Restart the frontend ONLY when you change:
+  · frontend/.env.local
+  · next.config.js
+  · package.json
+
+To restart the frontend:
+  Go to Window 3.
+  Press Ctrl+C.
+  Type:  npm run dev
+  Wait for "Ready in X.Xs".
+
+Restart the ML service ONLY when you retrain the model:
+  Go to Window 1.
+  Press Ctrl+C.
+  Type:  uvicorn service:app --port 8000
+  Wait for "Application startup complete."
+
+
+==============================================================================
+QUICK FIXES FOR COMMON PROBLEMS
+==============================================================================
+
+PROBLEM: Backend says "EADDRINUSE address already in use"
+
+FIX: Something is on port 4000. Either kill it or change port.
+
+  Quick kill:
+    Get-Process node | Stop-Process -Force
+
+  Then restart the backend (Window 2, Ctrl+C, npm run dev).
+
+  Or, change to port 4001:
+    1. Open .env, change PORT=4000 to PORT=4001
+    2. Open frontend\.env.local, change the API URL to :4001
+    3. Restart backend AND frontend
+
+
+PROBLEM: Browser shows "Failed to fetch"
+
+FIX: The frontend cannot reach the backend.
+
+  1. Is the backend window still open with the "listening" line?
+     If not, restart it.
+  2. Did you change the port in .env? Then you must also update
+     frontend\.env.local to match, and restart the frontend.
+  3. Hard-refresh the browser with Ctrl+Shift+R.
+
+
+PROBLEM: "Unable to connect to the remote server"
+
+FIX: The service you tried to check is not running.
+
+  1. Check the window for that service is still open.
+  2. Check the last line in that window — if it shows an error
+     (red text), paste it in a search or ask for help.
+  3. Restart the service (Ctrl+C, then run the start command again).
+
+
+PROBLEM: Map shows 0 buses
+
+FIX: The built-in simulator did not start.
+
+  1. Check Window 2 (backend) prints:
+       [sim] fleet simulator started — 12 vehicles across 4 routes
+  2. If that line is missing:
+     - Open .env and confirm SIMULATE_VEHICLES=true
+     - Restart the backend
+  3. If it is still 0, run this in Window 5:
+       mysql -u root -e "USE routeview; SELECT COUNT(*) FROM routes WHERE is_active=1;"
+     Should return 4. If it returns 0, run:
+       cd C:\xampp1\htdocs\routeview_v1\backend
+       npm run seed
+
+
+PROBLEM: AI assistant says "unavailable" or "fallback"
+
+FIX: OpenRouter is not configured or the model doesn't support tools.
+
+  1. Open .env. Confirm OPENROUTER_API_KEY=sk-or-v1-...
+     No quotes around the value.
+  2. Confirm the model supports tool calling:
+       OPENROUTER_MODEL=anthropic/claude-3.5-haiku
+     (or openai/gpt-4o-mini)
+  3. Restart the backend.
+  4. Check in Window 5:
+       Invoke-RestMethod http://localhost:4000/health
+     Should show: ai_configured : True
+
+
+PROBLEM: XAMPP MySQL won't start
+
+FIX:
+  1. Close XAMPP.
+  2. Open Task Manager, end any mysqld.exe processes.
+  3. Reopen XAMPP as Administrator.
+  4. Start MySQL again.
+  5. If it still fails, another app is on port 3306 (sometimes
+     another MySQL install). Stop that service or change XAMPP's
+     MySQL port in XAMPP config.
+
+
+==============================================================================
+DAILY WORKFLOW (the 30-second version)
+==============================================================================
+
+Every day you want to work on the project:
+
+  1.  XAMPP → Start Apache and MySQL
+  2.  Window 1 → cd ml, activate venv, uvicorn
+  3.  Window 2 → cd backend, npm run dev
+  4.  Window 3 → cd frontend, npm run dev
+  5.  Browser → http://localhost:3000
+
+That's it. Four steps.
+
+
+==============================================================================
+BEFORE A PITCH / DEMO
+==============================================================================
+
+Run this checklist 5 minutes before you present:
+
+  [ ] XAMPP: Apache and MySQL both green
+  [ ] Window 1 shows "Application startup complete."
+  [ ] Window 2 shows "API listening" AND "fleet simulator started"
+  [ ] Window 3 shows "Ready in X.Xs"
+  [ ] Window 5 check:
+        backend: True, ml: True, vehicles: 12, routes: 4
+  [ ] Browser opens http://localhost:3000 cleanly
+  [ ] Login as passenger works
+  [ ] Login as operator works at /admin/login
+  [ ] One ticket can be booked, printed, and validated once
+  [ ] The AI assistant answers in Kinyarwanda
+
+If everything above is green, you are ready to present.
+
+
+==============================================================================
+DEMO SCRIPT (8 minutes)
+==============================================================================
+
+Follow this flow during the pitch. It matches the order of the app and
+shows every feature.
+
+  1. HOMEPAGE (30 sec)
+     Show live stats, moving buses on the mini map, alert banner.
+
+  2. PLAN (90 sec)
+     http://localhost:3000/plan
+     Search: Nyabugogo → Kimironko. Show fares and durations.
+     Click "Ask AI" tab. Click a Kinyarwanda suggestion.
+     Watch the assistant call tools and reply.
+
+  3. MAP (60 sec)
+     http://localhost:3000/map
+     12 buses moving smoothly. Click one → passengers, next stop,
+     ML arrival estimate.
+     Toggle "My location" → grant GPS → blue dot appears.
+     Toggle "Satellite" → Esri imagery.
+
+  4. PLACES (60 sec)
+     http://localhost:3000/places
+     Ask "Where can I eat near me?"
+     AI asks for location → tap share → get recommendations
+     with moto fare and bus route.
+
+  5. TICKETS (90 sec)
+     http://localhost:3000/tickets
+     Sign in as passenger. Search Kigali → Musanze. Book.
+     Pay (demo). Click Show QR. Click Print.
+
+  6. VALIDATE (60 sec)
+     Sign out. Sign in as operator.
+     Go to /admin/validate. Paste the code. Valid.
+     Paste again. "already_used" — single-use lock.
+
+  7. ADMIN (60 sec)
+     /admin → KPIs
+     /admin/bookings → real orders
+     /admin/status → DB, ML, AI health
+
+  8. STAFF REGISTRATION (30 sec)
+     /admin/login → Register tab.
+     Enter invite code ROUTEVIEW2024. Pick role. Get in.
+
+  9. WRAP UP (30 sec)
+     Point out: real data, real ML model, real AI, no fake claims.
+
+
+==============================================================================
+  END OF RUN INSTRUCTIONS
+
+  Full technical documentation is in document.txt.
+  All packages and versions are in dependencies.txt.
+==============================================================================

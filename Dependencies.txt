@@ -1,0 +1,376 @@
+==============================================================================
+  ROUTEVIEW — COMPLETE DEPENDENCIES
+  All packages, versions, and installation instructions.
+  Tested on: Node 22.21, Python 3.10.10, XAMPP MySQL 8 / MariaDB 10.4
+==============================================================================
+
+
+==============================================================================
+1. SYSTEM-LEVEL PREREQUISITES
+==============================================================================
+
+RUNTIME (must be installed on the machine)
+------------------------------------------
+  Node.js                 v20.x or newer    https://nodejs.org
+  npm                     10.x or newer     (comes with Node)
+  Python                  3.10.x or 3.12.x  https://python.org
+  pip                     23.x or newer     (comes with Python)
+  MySQL / MariaDB         5.7+ / 10.4+      via XAMPP
+
+VERIFY
+  node -v
+  npm -v
+  python --version
+  Test-NetConnection 127.0.0.1 -Port 3306     (PowerShell)
+
+
+==============================================================================
+2. BACKEND — Node.js packages
+==============================================================================
+
+Location: backend/package.json
+
+PRODUCTION DEPENDENCIES
+-----------------------
+  bcryptjs                 ^2.4.3     Password hashing
+  cors                     ^2.8.5     Cross-origin requests
+  dotenv                   ^16.4.5    Read .env file
+  express                  ^4.19.2    HTTP framework
+  express-rate-limit       ^7.4.0     Rate limiting
+  helmet                   ^7.1.0     Security headers
+  jsonwebtoken             ^9.0.2     JWT auth
+  morgan                   ^1.10.0    HTTP logging
+  multer                   ^1.4.5-lts.1  File uploads
+  mysql2                   ^3.11.0    MySQL driver
+  nanoid                   ^5.0.7     Unique IDs
+  qrcode                   ^1.5.4     QR code generation
+  zod                      ^3.23.8    Schema validation
+
+INSTALL
+  cd backend
+  npm install
+
+VERIFY
+  npm ls express mysql2 bcryptjs jsonwebtoken zod multer qrcode
+
+Expected output (versions may vary):
+  routeview-backend@1.0.0
+  ├── bcryptjs@2.4.3
+  ├── express@4.19.2
+  ├── jsonwebtoken@9.0.2
+  ├── multer@1.4.5-lts.1
+  ├── mysql2@3.11.0
+  ├── qrcode@1.5.4
+  └── zod@3.23.8
+
+
+==============================================================================
+3. FRONTEND — Node.js packages
+==============================================================================
+
+Location: frontend/package.json
+
+PRODUCTION DEPENDENCIES
+-----------------------
+  leaflet                  ^1.9.4     Interactive maps
+  next                     14.2.5     React framework
+  react                    18.3.1     UI library
+  react-dom                18.3.1     DOM renderer
+  react-leaflet            ^4.2.1     React bindings for Leaflet
+
+DEV DEPENDENCIES
+----------------
+  @types/leaflet           ^1.9.12    Leaflet TypeScript types
+  @types/node              ^20.14.0   Node TypeScript types
+  @types/react             ^18.3.3    React TypeScript types
+  autoprefixer             ^10.4.19   CSS vendor prefixing
+  postcss                  ^8.4.40    CSS transformation
+  tailwindcss              ^3.4.7     Utility CSS
+  typescript               ^5.5.4     Type checker
+
+INSTALL
+  cd frontend
+  npm install
+
+VERIFY
+  npm ls next react react-dom leaflet react-leaflet tailwindcss typescript
+
+Expected output:
+  routeview-frontend@1.0.0
+  ├── leaflet@1.9.4
+  ├── next@14.2.5
+  ├── react@18.3.1
+  ├── react-dom@18.3.1
+  ├── react-leaflet@4.2.1
+  ├── tailwindcss@3.4.7
+  └── typescript@5.5.4
+
+OPTIONAL
+  sharp                    — enables Next.js image optimisation
+                             (not required; images work without it)
+  Install with:  npm install sharp
+
+
+==============================================================================
+4. SIMULATOR — Node.js packages
+==============================================================================
+
+Location: simulator/  (no package.json in repo — created during setup)
+
+DEPENDENCIES
+------------
+  dotenv                   ^16.4.5    Read .env
+  jsonwebtoken             ^9.0.2     Sign simulator JWT
+
+INSTALL
+  cd simulator
+  npm init -y
+  npm install dotenv jsonwebtoken
+
+VERIFY
+  npm ls dotenv jsonwebtoken
+
+Note: the backend already has its own built-in fleet simulator that
+runs automatically when SIMULATE_VEHICLES=true. This external
+simulator is optional and only useful for testing two independent
+position sources at once.
+
+
+==============================================================================
+5. MACHINE LEARNING — Python packages
+==============================================================================
+
+Location: ml/requirements.txt
+
+PACKAGES
+--------
+  pandas                   2.2.2       Data manipulation
+  numpy                    2.1.1       Numerical computing
+  scikit-learn             1.5.1       ML algorithms
+  joblib                   1.4.2       Model persistence
+  fastapi                  0.114.0     Inference API framework
+  uvicorn                  0.30.5      ASGI server
+  pydantic                 2.8.2       Request validation
+
+TRANSITIVE DEPENDENCIES (installed automatically)
+-------------------------------------------------
+  starlette                ^0.38.6
+  anyio                    ^4.4
+  annotated-types          ^0.7.0
+  click                    ^8.1
+  exceptiongroup           ^1.2
+  h11                      ^0.14
+  idna                     ^3.7
+  python-dateutil          ^2.9
+  pytz                     ^2024.1
+  scipy                    ^1.14
+  six                      ^1.16
+  threadpoolctl            ^3.5
+  typing-extensions        ^4.12
+  tzdata                   ^2024.1
+  pydantic-core            ^2.20
+
+INSTALL (from ml/ with .venv activated)
+  python -m pip install --upgrade pip
+  pip install -r requirements.txt
+
+VERIFY
+  python -c "import pandas, numpy, sklearn, joblib, fastapi, uvicorn, pydantic; print('pandas', pandas.__version__); print('numpy', numpy.__version__); print('scikit-learn', sklearn.__version__)"
+
+Expected:
+  pandas 2.2.2
+  numpy 2.1.1
+  scikit-learn 1.5.1
+
+COMPATIBILITY
+  All seven packages have prebuilt Windows wheels for Python 3.10
+  and 3.12. No C++ compiler is needed.
+
+
+==============================================================================
+6. EXTERNAL SERVICES (no installation, network calls only)
+==============================================================================
+
+OpenRouter                  https://openrouter.ai
+  API for the AI assistant. Requires an API key.
+  Free tier available; paid models start at $0.15 / million tokens.
+
+OpenStreetMap Tiles         https://tile.openstreetmap.org
+  Free base map tiles. No key required.
+
+OSRM (routing engine)       https://router.project-osrm.org
+  Free road geometry for smooth bus movement. No key required.
+  If unreachable, the simulator falls back to straight lines.
+
+Overpass API                https://overpass-api.de
+  Free OpenStreetMap POI queries for the place finder.
+  If unreachable, the backend serves a built-in demo set.
+
+Esri World Imagery          https://server.arcgisonline.com
+  Free satellite tiles for the map toggle. No key required.
+
+Google Maps links           https://maps.google.com
+  "Open navigation" links only. No API key needed for URL scheme.
+
+
+==============================================================================
+7. BROWSER APIs USED (nothing to install)
+==============================================================================
+
+navigator.geolocation
+  Real-time user location on the map and place finder.
+
+BarcodeDetector (Chrome, Edge, recent Safari)
+  QR scanning at /admin/validate. Falls back to manual entry
+  everywhere else.
+
+localStorage
+  Persists JWT token, user profile, and AI chat session.
+
+print() via window.print()
+  A4 ticket printing on the tickets page.
+
+
+==============================================================================
+8. ONE-SHOT INSTALL SCRIPT
+==============================================================================
+
+Copy-paste this into PowerShell from the project root. It installs
+everything in one go.
+
+--- BEGIN ---
+
+Write-Host "Installing backend..."
+cd backend
+npm install
+cd ..
+
+Write-Host "Installing frontend..."
+cd frontend
+npm install
+cd ..
+
+Write-Host "Installing simulator..."
+cd simulator
+npm init -y
+npm install dotenv jsonwebtoken
+cd ..
+
+Write-Host "Setting up Python..."
+cd ml
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+Write-Host "Training model (takes 1-3 minutes)..."
+python generate_dataset.py
+python train.py
+deactivate
+cd ..
+
+Write-Host "Setting up database..."
+cd backend
+npm run db:init
+npm run seed
+mysql -u root routeview < src\db\intercity_schema.sql
+npm run seed:intercity
+cd ..
+
+Write-Host ""
+Write-Host "DONE. Now start the four services:"
+Write-Host "  Terminal 1: cd ml ; .\.venv\Scripts\Activate.ps1 ; uvicorn service:app --port 8000"
+Write-Host "  Terminal 2: cd backend ; npm run dev"
+Write-Host "  Terminal 3: cd frontend ; npm run dev"
+Write-Host "  Browser:    http://localhost:3000"
+
+--- END ---
+
+
+==============================================================================
+9. VERSION PINNING (for reproducible installs)
+==============================================================================
+
+If you need exact versions (e.g. for a CI pipeline), replace carets
+in package.json with fixed versions:
+
+backend/package.json
+  "bcryptjs": "2.4.3",
+  "cors": "2.8.5",
+  "dotenv": "16.4.5",
+  "express": "4.19.2",
+  "express-rate-limit": "7.4.0",
+  "helmet": "7.1.0",
+  "jsonwebtoken": "9.0.2",
+  "morgan": "1.10.0",
+  "multer": "1.4.5-lts.1",
+  "mysql2": "3.11.0",
+  "nanoid": "5.0.7",
+  "qrcode": "1.5.4",
+  "zod": "3.23.8"
+
+frontend/package.json
+  "leaflet": "1.9.4",
+  "next": "14.2.5",
+  "react": "18.3.1",
+  "react-dom": "18.3.1",
+  "react-leaflet": "4.2.1",
+  "@types/leaflet": "1.9.12",
+  "@types/node": "20.14.0",
+  "@types/react": "18.3.3",
+  "autoprefixer": "10.4.19",
+  "postcss": "8.4.40",
+  "tailwindcss": "3.4.7",
+  "typescript": "5.5.4"
+
+ml/requirements.txt — already pinned exactly.
+simulator — dotenv 16.4.5, jsonwebtoken 9.0.2.
+
+
+==============================================================================
+10. DISK & MEMORY REQUIREMENTS
+==============================================================================
+
+Disk:
+  Node modules (backend + frontend + simulator)   ~600 MB
+  Python venv                                     ~350 MB
+  Model artifacts (dataset + joblib)              ~20 MB
+  Source code                                     ~5 MB
+  Total                                           ~1 GB
+
+Memory:
+  Backend (Node)                                  ~120 MB RAM
+  Frontend (Next dev)                             ~400 MB RAM
+  ML service (FastAPI + joblib)                   ~200 MB RAM
+  MySQL                                           ~150 MB RAM
+  Total peak                                      ~900 MB RAM
+
+Works comfortably on an 8 GB machine with a browser open.
+
+Startup times (after first install):
+  Backend ready          2–5 seconds
+  Frontend ready         3–8 seconds
+  ML service ready       2–4 seconds
+  First page load        < 2 seconds on localhost
+
+
+==============================================================================
+11. WHAT'S NOT NEEDED
+==============================================================================
+
+You do NOT need:
+  · Docker or any container runtime
+  · A cloud account (Vercel, AWS, GCP, etc.)
+  · A paid domain
+  · A paid map API key (OpenStreetMap and Esri tiles are free)
+  · A paid AI key (OpenRouter has free-tier models)
+  · A message queue, Redis, or any background service
+  · Git (unless you want version control)
+  · Any compiler, build tool, or native extension
+
+The whole system runs on one Windows machine with XAMPP and Node/Python
+installed. Everything else is public HTTP APIs.
+
+
+==============================================================================
+  END OF DEPENDENCIES
+==============================================================================
